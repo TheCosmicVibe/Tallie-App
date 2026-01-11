@@ -1,5 +1,5 @@
-import { AppDataSource } from '../src/config/database';
-import { redisClient } from '../src/config/redis';
+import { AppDataSource } from '../../src/config/database';
+import { redisClient } from '../../src/config/redis';
 
 beforeAll(async () => {
   // Initialize test database
