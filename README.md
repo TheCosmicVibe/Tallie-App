@@ -248,9 +248,11 @@ cp .env.example .env
 # Edit .env with your database and Redis credentials
 ```
 
-5. **Run migrations** (if needed)
+5. **Run migrations** 
 ```bash
 npm run migration:run
+or
+sudo npm run typeorm -- migration:run -d src/config/database.ts
 ```
 
 6. **Start development server**
