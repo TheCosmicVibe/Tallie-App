@@ -3,8 +3,7 @@ import Joi from 'joi';
 import { ApiError } from '../utils/ApiError';
 
 export const validate = (schema: Joi.ObjectSchema) => {
-  // res is unused here, rename to _res to avoid TS6133
-  return (req: Request, _res: Response, next: NextFunction) => {
+    return (req: Request, _res: Response, next: NextFunction) => {
     const { error, value } = schema.validate(req.body, {
       abortEarly: false,
       stripUnknown: true,
