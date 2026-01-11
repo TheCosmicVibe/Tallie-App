@@ -197,8 +197,8 @@ waitlists
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/tallie-restaurant-system.git
-cd tallie-restaurant-system
+git clone https://github.com/TheCosmicVibe/Tallie-App.git
+cd Tallie-App
 ```
 
 2. **Create environment file**
@@ -218,8 +218,8 @@ The API will be available at `http://localhost:3000`
 
 1. **Clone and install dependencies**
 ```bash
-git clone https://github.com/yourusername/tallie-restaurant-system.git
-cd tallie-restaurant-system
+git clone https://github.com/TheCosmicVibe/Tallie-App.git
+cd Tallie-App
 npm install
 ```
 
