@@ -12,7 +12,7 @@ router.post(
   '/restaurants/:restaurantId/waitlist',
   validateParams(paramSchema('restaurantId')),
   validate(schemas.createWaitlist),
-  asyncHandler(controller.addToWaitlist)
+  asyncHandler(controller.addToWaitlist.bind(controller))
 );
 
 // Get waitlist
@@ -24,7 +24,7 @@ router.get(
       date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional(),
     })
   ),
-  asyncHandler(controller.getWaitlist)
+  asyncHandler(controller.getWaitlist.bind(controller))
 );
 
 // Update waitlist status
@@ -38,14 +38,14 @@ router.patch(
         .required(),
     })
   ),
-  asyncHandler(controller.updateWaitlistStatus)
+  asyncHandler(controller.updateWaitlistStatus.bind(controller))
 );
 
 // Remove from waitlist
 router.delete(
   '/:id',
   validateParams(paramSchema('id')),
-  asyncHandler(controller.removeFromWaitlist)
+  asyncHandler(controller.removeFromWaitlist.bind(controller))
 );
 
 export default router;
