@@ -4,9 +4,9 @@ import { initializeDatabase, closeDatabase } from './config/database';
 import { redisClient } from './config/redis';
 import { logger } from './utils/logger';
 
-let server: any;
+let server: ReturnType<typeof app.listen> | undefined;
 
-const startServer = async () => {
+const startServer = async (): Promise<void> => {
   try {
     // Initialize database
     await initializeDatabase();
@@ -28,7 +28,7 @@ const startServer = async () => {
   }
 };
 
-const gracefulShutdown = async (signal: string) => {
+const gracefulShutdown = async (signal: string): Promise<void> => {
   logger.info(`\n${signal} received. Starting graceful shutdown...`);
 
   try {
@@ -59,13 +59,13 @@ const gracefulShutdown = async (signal: string) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Handle uncaught errors
-process.on('uncaughtException', (error) => {
+// Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error: Error) => {
   logger.error('Uncaught Exception:', error);
   gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
   gracefulShutdown('UNHANDLED_REJECTION');
 });
