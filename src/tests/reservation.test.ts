@@ -8,7 +8,6 @@ const API_PREFIX = '/api/v1';
 
 describe('Reservation API', () => {
   let restaurantId: number;
-  let _tableId: number;
 
   beforeEach(async () => {
     // Create test restaurant
@@ -21,15 +20,14 @@ describe('Reservation API', () => {
     const savedRestaurant = await AppDataSource.getRepository(Restaurant).save(restaurant);
     restaurantId = savedRestaurant.id;
 
-    // Create test table
+    // Create test table (we don't need to reference its id in these tests)
     const table = AppDataSource.getRepository(Table).create({
       restaurantId,
       tableNumber: 'T1',
       capacity: 4,
       isActive: true,
     });
-    const savedTable = await AppDataSource.getRepository(Table).save(table);
-    tableId = savedTable.id;
+    await AppDataSource.getRepository(Table).save(table);
   });
 
   describe('POST /reservations/restaurants/:restaurantId/reservations', () => {
@@ -88,7 +86,7 @@ describe('Reservation API', () => {
           duration: 120,
         });
 
-      // Should either succeed with different table or fail
+      // Should either succeed with different table or fail (conflict)
       expect([201, 409]).toContain(response.status);
     });
 
