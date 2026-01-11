@@ -1,7 +1,7 @@
 import { SeatingOptimizationService } from '../src/services/seatingOptimizationService';
-import { AppDataSource } from '../src/config/database';
-import { Restaurant } from '../src/models/Restaurant';
-import { Table } from '../src/models/Table';
+import { AppDataSource } from '../../src/config/database';
+import { Restaurant } from '../../src/models/Restaurant';
+import { Table } from '../../src/models/Table';
 
 describe('Seating Optimization Service', () => {
   let seatingService: SeatingOptimizationService;
