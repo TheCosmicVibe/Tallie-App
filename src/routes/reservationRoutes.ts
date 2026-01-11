@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ReservationController } from '../controllers/reservationController';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { validate, validateParams, validateQuery, schemas } from '../middleware/validator';
+import { validate, validateParams, validateQuery, schemas, paramSchema } from '../middleware/validator';
 
 const router = Router();
 const controller = new ReservationController();
@@ -9,7 +9,7 @@ const controller = new ReservationController();
 // Availability check
 router.get(
   '/restaurants/:restaurantId/availability',
-  validateParams(schemas.idParam.keys({ restaurantId: schemas.idParam.extract('id') })),
+  validateParams(paramSchema('restaurantId')),
   validateQuery(schemas.availabilityQuery),
   asyncHandler(controller.checkAvailability)
 );
@@ -17,7 +17,7 @@ router.get(
 // Reservations by date
 router.get(
   '/restaurants/:restaurantId/reservations',
-  validateParams(schemas.idParam.keys({ restaurantId: schemas.idParam.extract('id') })),
+  validateParams(paramSchema('restaurantId')),
   validateQuery(schemas.dateQuery),
   asyncHandler(controller.getReservationsByDate)
 );
@@ -25,7 +25,7 @@ router.get(
 // Create reservation
 router.post(
   '/restaurants/:restaurantId/reservations',
-  validateParams(schemas.idParam.keys({ restaurantId: schemas.idParam.extract('id') })),
+  validateParams(paramSchema('restaurantId')),
   validate(schemas.createReservation),
   asyncHandler(controller.createReservation)
 );
@@ -33,14 +33,14 @@ router.post(
 // Get single reservation
 router.get(
   '/:id',
-  validateParams(schemas.idParam),
+  validateParams(paramSchema('id')),
   asyncHandler(controller.getReservation)
 );
 
 // Update reservation
 router.put(
   '/:id',
-  validateParams(schemas.idParam),
+  validateParams(paramSchema('id')),
   validate(schemas.updateReservation),
   asyncHandler(controller.updateReservation)
 );
@@ -48,7 +48,7 @@ router.put(
 // Cancel reservation
 router.delete(
   '/:id',
-  validateParams(schemas.idParam),
+  validateParams(paramSchema('id')),
   asyncHandler(controller.cancelReservation)
 );
 
