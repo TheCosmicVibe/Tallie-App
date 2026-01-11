@@ -1,8 +1,8 @@
-import { AvailabilityService } from '../src/services/availabilityService';
-import { AppDataSource } from '../src/config/database';
-import { Restaurant } from '../src/models/Restaurant';
-import { Table } from '../src/models/Table';
-import { Reservation } from '../src/models/Reservation';
+import { AvailabilityService } from '../../src/services/availabilityService';
+import { AppDataSource } from '../../src/config/database';
+import { Restaurant } from '../../src/models/Restaurant';
+import { Table } from '../../src/models/Table';
+import { Reservation } from '../../src/models/Reservation';
 
 describe('Availability Service', () => {
   let availabilityService: AvailabilityService;
