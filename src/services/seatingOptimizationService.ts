@@ -169,7 +169,8 @@ export class SeatingOptimizationService {
       where: {
         restaurantId,
         reservationDate: date,
-        status: 'confirmed',
+        // Cast the literal to the Reservation entity's status type to satisfy TypeORM typings
+        status: ('confirmed' as unknown) as Reservation['status'],
       },
       relations: ['table'],
       order: {
