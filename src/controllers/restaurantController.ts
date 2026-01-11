@@ -26,7 +26,8 @@ export class RestaurantController {
     });
   }
 
-  async getAllRestaurants(req: Request, res: Response): Promise<void> {
+  // changed req -> _req because the request object isn't used (avoids TS6133)
+  async getAllRestaurants(_req: Request, res: Response): Promise<void> {
     const restaurants = await restaurantService.getAllRestaurants();
     
     res.json({
