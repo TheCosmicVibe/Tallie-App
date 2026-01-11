@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.join(process.cwd(), '.env') });
+
 import { DataSource } from 'typeorm';
 import { env } from './env';
 import { Restaurant } from '../models/Restaurant';
@@ -6,6 +10,9 @@ import { Reservation } from '../models/Reservation';
 import { Waitlist } from '../models/Waitlist';
 import { logger } from '../utils/logger';
 
+/**
+ * TypeORM DataSource configuration
+ */
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: env.DB_HOST,
@@ -16,7 +23,7 @@ export const AppDataSource = new DataSource({
   synchronize: env.DB_SYNC,
   logging: env.DB_LOGGING,
   entities: [Restaurant, Table, Reservation, Waitlist],
-  migrations: [],
+  migrations: ['src/migrations/*.ts'], // <-- make sure this matches your migrations folder
   subscribers: [],
   extra: {
     connectionTimeoutMillis: 5000,
@@ -26,13 +33,15 @@ export const AppDataSource = new DataSource({
   },
 });
 
+/**
+ * Initialize database connection (use in app startup)
+ */
 export const initializeDatabase = async (): Promise<void> => {
   try {
     await AppDataSource.initialize();
     logger.info('Database connection established successfully');
 
-    // Run migrations if needed
-    if (env.NODE_ENV === 'production') {
+        if (env.NODE_ENV === 'production') {
       await AppDataSource.runMigrations();
       logger.info('Database migrations executed successfully');
     }
@@ -42,6 +51,9 @@ export const initializeDatabase = async (): Promise<void> => {
   }
 };
 
+/**
+ * Close database connection
+ */
 export const closeDatabase = async (): Promise<void> => {
   try {
     if (AppDataSource.isInitialized) {
