@@ -35,16 +35,16 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging
-app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`, {
-    ip: req.ip,
-    userAgent: req.get('user-agent'),
+app.use((_req, _res, next) => {
+  logger.info(`${_req.method} ${_req.path}`, {
+    ip: _req.ip,
+    userAgent: _req.get('user-agent'),
   });
   next();
 });
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -55,7 +55,7 @@ app.get('/health', (req, res) => {
 // API routes
 const apiPrefix = `/api/${env.API_VERSION}`;
 
-app.get(apiPrefix, (req, res) => {
+app.get(apiPrefix, (_req, res) => {
   res.json({
     message: 'Welcome to Tallie Restaurant System API',
     version: env.API_VERSION,
