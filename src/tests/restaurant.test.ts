@@ -1,7 +1,7 @@
 import request from 'supertest';
-import app from '../src/app';
-import { AppDataSource } from '../src/config/database';
-import { Restaurant } from '../src/models/Restaurant';
+import app from '../../src/app';
+import { AppDataSource } from '../../src/config/database';
+import { Restaurant } from '../../src/models/Restaurant';
 
 const API_PREFIX = '/api/v1';
 
