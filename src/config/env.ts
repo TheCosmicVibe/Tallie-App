@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 import path from 'path';
-
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 interface EnvConfig {
@@ -39,9 +38,11 @@ interface EnvConfig {
   LOG_LEVEL: string;
 }
 
-const getEnv = (key: string, defaultValue?: string): string => {
-  const value = process.env[key] || defaultValue;
-  if (!value) {
+/**
+ * Helpers to read env variables */
+const getEnv = (key: string, defaultValue?: string, allowEmpty = false): string => {
+  const value = process.env[key] ?? defaultValue;
+  if (value === undefined || (!allowEmpty && value === '')) {
     throw new Error(`Environment variable ${key} is not defined`);
   }
   return value;
@@ -61,6 +62,9 @@ const getEnvAsBoolean = (key: string, defaultValue: boolean = false): boolean =>
   return value.toLowerCase() === 'true';
 };
 
+/**
+ * Exported config object
+ */
 export const env: EnvConfig = {
   NODE_ENV: getEnv('NODE_ENV', 'development'),
   PORT: getEnvAsNumber('PORT', 3000),
@@ -76,7 +80,7 @@ export const env: EnvConfig = {
 
   REDIS_HOST: getEnv('REDIS_HOST', 'localhost'),
   REDIS_PORT: getEnvAsNumber('REDIS_PORT', 6379),
-  REDIS_PASSWORD: getEnv('REDIS_PASSWORD', ''),
+  REDIS_PASSWORD: getEnv('REDIS_PASSWORD', '', true), // ✅ allow empty string
   REDIS_DB: getEnvAsNumber('REDIS_DB', 0),
   CACHE_TTL: getEnvAsNumber('CACHE_TTL', 3600),
 
