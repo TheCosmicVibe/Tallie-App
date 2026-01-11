@@ -7,8 +7,9 @@ export const errorHandler = (
   err: Error,
   req: Request,
   res: Response,
-  next: NextFunction
-) => {
+  _next: NextFunction
+): Response => {
+  // Log error details
   logger.error('Error:', {
     message: err.message,
     stack: err.stack,
@@ -25,7 +26,7 @@ export const errorHandler = (
     });
   }
 
-  // Handle specific errors
+  // Validation error
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       success: false,
@@ -34,6 +35,7 @@ export const errorHandler = (
     });
   }
 
+  // Unauthorized error
   if (err.name === 'UnauthorizedError') {
     return res.status(401).json({
       success: false,
@@ -41,7 +43,7 @@ export const errorHandler = (
     });
   }
 
-  // Database errors
+  // Database query error
   if (err.name === 'QueryFailedError') {
     return res.status(500).json({
       success: false,
@@ -50,18 +52,20 @@ export const errorHandler = (
     });
   }
 
-  // Default error
-  res.status(500).json({
+  // Default fallback error
+  return res.status(500).json({
     success: false,
-    message: env.NODE_ENV === 'production'
-      ? 'An unexpected error occurred'
-      : err.message,
+    message:
+      env.NODE_ENV === 'production'
+        ? 'An unexpected error occurred'
+        : err.message,
     ...(env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };
 
-export const notFoundHandler = (req: Request, res: Response) => {
-  res.status(404).json({
+// 404 handler
+export const notFoundHandler = (req: Request, res: Response): Response => {
+  return res.status(404).json({
     success: false,
     message: `Route ${req.originalUrl} not found`,
   });
