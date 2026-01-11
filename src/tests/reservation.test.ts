@@ -8,7 +8,7 @@ const API_PREFIX = '/api/v1';
 
 describe('Reservation API', () => {
   let restaurantId: number;
-  let tableId: number;
+  let _tableId: number;
 
   beforeEach(async () => {
     // Create test restaurant
