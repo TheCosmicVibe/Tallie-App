@@ -3,6 +3,7 @@ import { AppDataSource } from '../../src/config/database';
 import { Restaurant } from '../../src/models/Restaurant';
 import { Table } from '../../src/models/Table';
 import { Reservation } from '../../src/models/Reservation';
+import { ReservationStatus } from '../../src/types';
 
 describe('Availability Service', () => {
   let availabilityService: AvailabilityService;
@@ -20,6 +21,7 @@ describe('Availability Service', () => {
       closingTime: '22:00',
       totalTables: 10,
     });
+
     const savedRestaurant = await AppDataSource.getRepository(Restaurant).save(restaurant);
     restaurantId = savedRestaurant.id;
 
@@ -29,6 +31,7 @@ describe('Availability Service', () => {
       capacity: 4,
       isActive: true,
     });
+
     const savedTable = await AppDataSource.getRepository(Table).save(table);
     tableId = savedTable.id;
   });
@@ -56,7 +59,6 @@ describe('Availability Service', () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const date = tomorrow.toISOString().split('T')[0];
 
-      // Create reservations for all time slots
       const reservation = AppDataSource.getRepository(Reservation).create({
         restaurantId,
         tableId,
@@ -67,9 +69,10 @@ describe('Availability Service', () => {
         startTime: '10:00',
         endTime: '22:00',
         duration: 720,
-        status: 'confirmed',
+        status: ReservationStatus.CONFIRMED,
         confirmationCode: 'TEST123',
       });
+
       await AppDataSource.getRepository(Reservation).save(reservation);
 
       const result = await availabilityService.checkAvailability({
@@ -104,7 +107,6 @@ describe('Availability Service', () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const date = tomorrow.toISOString().split('T')[0];
 
-      // Create existing reservation
       const reservation = AppDataSource.getRepository(Reservation).create({
         restaurantId,
         tableId,
@@ -115,9 +117,10 @@ describe('Availability Service', () => {
         startTime: '19:00',
         endTime: '21:00',
         duration: 120,
-        status: 'confirmed',
+        status: ReservationStatus.CONFIRMED,
         confirmationCode: 'TEST123',
       });
+
       await AppDataSource.getRepository(Reservation).save(reservation);
 
       const result = await availabilityService.isTableAvailable(
