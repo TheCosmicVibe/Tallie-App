@@ -2,7 +2,6 @@ import {
   parse,
   format,
   addMinutes,
-  isWithinInterval,
   isBefore,
   isAfter,
   startOfDay,
@@ -14,17 +13,50 @@ import {
 } from 'date-fns';
 
 export class TimeHelper {
+  /**
+   * Parse a time string in either HH:mm or HH:mm:ss into a Date object (date = today).
+   * Returns an invalid Date if input can't be parsed.
+   */
   static parseTime(timeString: string): Date {
-    return parse(timeString, 'HH:mm', new Date());
+    if (!timeString || typeof timeString !== 'string') {
+      return new Date(NaN);
+    }
+
+    // Try HH:mm:ss first, then HH:mm
+    const tryFormats = ['HH:mm:ss', 'HH:mm'];
+    for (const fmt of tryFormats) {
+      const parsed = parse(timeString, fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    }
+
+    // fallback: try to parse only the first 5 characters (in case DB has trailing)
+    const maybe = timeString.slice(0, 5);
+    const parsed = parse(maybe, 'HH:mm', new Date());
+    return isValid(parsed) ? parsed : new Date(NaN);
   }
 
+  /**
+   * Format a Date object to 'HH:mm' (no seconds).
+   * Use this for API-level time strings so they match Joi validation.
+   */
   static formatTime(date: Date): string {
     return format(date, 'HH:mm');
   }
 
+  /**
+   * Parse a combined date string and time string into a Date object.
+   * Accepts timeString in HH:mm or HH:mm:ss.
+   */
   static parseDateTime(dateString: string, timeString: string): Date {
-    const dateTime = `${dateString} ${timeString}`;
-    return parse(dateTime, 'yyyy-MM-dd HH:mm', new Date());
+    if (!dateString || !timeString) return new Date(NaN);
+
+    // choose a format depending on whether timeString contains seconds
+    const hasSeconds = /^\d{2}:\d{2}:\d{2}$/.test(timeString);
+    const formatString = hasSeconds ? 'yyyy-MM-dd HH:mm:ss' : 'yyyy-MM-dd HH:mm';
+
+    const dateTimeString = `${dateString} ${timeString}`;
+    const parsed = parse(dateTimeString, formatString, new Date());
+    return parsed;
   }
 
   static formatDateTime(date: Date): { date: string; time: string } {
@@ -34,26 +66,52 @@ export class TimeHelper {
     };
   }
 
+  /**
+   * Convert a time string (HH:mm or HH:mm:ss) into minutes since midnight.
+   * Returns NaN for invalid inputs.
+   */
+  static timeStringToMinutes(timeString: string): number {
+    if (!timeString) return NaN;
+    const parts = timeString.split(':').map((p) => parseInt(p, 10));
+    if (parts.length < 2) return NaN;
+    const hours = Number.isFinite(parts[0]) ? parts[0] : NaN;
+    const minutes = Number.isFinite(parts[1]) ? parts[1] : NaN;
+    const seconds = parts.length >= 3 && Number.isFinite(parts[2]) ? parts[2] : 0;
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return NaN;
+    return hours * 60 + minutes + Math.floor(seconds / 60);
+  }
+
+  /**
+   * Check if a given Date (actual date+time) falls within operating hours defined
+   * by openingTime and closingTime strings (either HH:mm or HH:mm:ss).
+   *
+   * Implementation compares only time-of-day (minutes from midnight), and correctly
+   * handles overnight closing (e.g., open 20:00, close 02:00).
+   */
   static isWithinOperatingHours(
     time: Date,
     openingTime: string,
     closingTime: string
   ): boolean {
-    const openTime = this.parseTime(openingTime);
-    const closeTime = this.parseTime(closingTime);
-    const checkTime = this.parseTime(this.formatTime(time));
+    if (!isValid(time)) return false;
 
-    // Handle overnight closing (e.g., 10:00 to 02:00)
-    if (isBefore(closeTime, openTime)) {
-      return (
-        !isBefore(checkTime, openTime) || !isAfter(checkTime, closeTime)
-      );
+    const checkMinutes = time.getHours() * 60 + time.getMinutes();
+
+    const openMinutes = this.timeStringToMinutes(openingTime);
+    const closeMinutes = this.timeStringToMinutes(closingTime);
+
+    if (!Number.isFinite(openMinutes) || !Number.isFinite(closeMinutes)) {
+      // cannot interpret opening/closing times => treat as invalid => not within
+      return false;
     }
 
-    return isWithinInterval(checkTime, {
-      start: openTime,
-      end: closeTime,
-    });
+    // normal same-day window
+    if (closeMinutes > openMinutes) {
+      return checkMinutes >= openMinutes && checkMinutes <= closeMinutes;
+    }
+
+    // overnight window (e.g., open 22:00 (1320), close 02:00 (120))
+    return checkMinutes >= openMinutes || checkMinutes <= closeMinutes;
   }
 
   static hasOverlap(
@@ -62,35 +120,57 @@ export class TimeHelper {
     start2: Date,
     end2: Date
   ): boolean {
-    return isBefore(start1, end2) && isAfter(end1, start2);
+    // Two intervals [start1,end1) and [start2,end2) overlap if start1 < end2 && end1 > start2
+    return start1 < end2 && end1 > start2;
   }
 
+  /**
+   * Generate time slots between openingTime and closingTime using slotDuration minutes.
+   * Returns times as 'HH:mm' strings. Handles overnight closing correctly by rolling the close time to next day.
+   */
   static generateTimeSlots(
     openingTime: string,
     closingTime: string,
     slotDuration: number = 30
   ): string[] {
     const slots: string[] = [];
-    let currentTime = this.parseTime(openingTime);
-    const closeTime = this.parseTime(closingTime);
 
-    // Handle overnight closing
-    if (isBefore(closeTime, currentTime)) {
-      closeTime.setDate(closeTime.getDate() + 1);
+    const openDate = this.parseTime(openingTime);
+    const closeDate = this.parseTime(closingTime);
+
+    if (!isValid(openDate) || !isValid(closeDate)) {
+      return slots;
     }
 
-    while (isBefore(currentTime, closeTime)) {
-      slots.push(this.formatTime(currentTime));
-      currentTime = addMinutes(currentTime, slotDuration);
+    // get minutes since midnight representation
+    const openMin = this.timeStringToMinutes(openingTime);
+    let closeMin = this.timeStringToMinutes(closingTime);
+
+    // if close <= open -> overnight, add 24h to close
+    const overnight = closeMin <= openMin;
+    if (overnight) closeMin += 24 * 60;
+
+    // iterate from openMin to (closeMin - slotDuration) inclusive, stepping by slotDuration
+    for (let m = openMin; m + slotDuration <= closeMin; m += slotDuration) {
+      // convert m (minutes possibly > 1440) back to a time-of-day in HH:mm, mod 1440
+      const mm = m % (24 * 60);
+      const hh = Math.floor(mm / 60)
+        .toString()
+        .padStart(2, '0');
+      const mins = Math.floor(mm % 60)
+        .toString()
+        .padStart(2, '0');
+      slots.push(`${hh}:${mins}`);
     }
 
     return slots;
   }
 
   static addMinutesToTime(timeString: string, minutes: number): string {
-    const time = this.parseTime(timeString);
-    const newTime = addMinutes(time, minutes);
-    return this.formatTime(newTime);
+    const base = this.parseTime(timeString);
+    if (!isValid(base)) return '';
+    const newDate = addMinutes(base, minutes);
+    return this.formatTime(newDate);
   }
 
   static isValidDate(dateString: string): boolean {
@@ -100,8 +180,8 @@ export class TimeHelper {
 
   static isValidTime(timeString: string): boolean {
     try {
-      const time = this.parseTime(timeString);
-      return isValid(time);
+      const parsed = this.parseTime(timeString);
+      return isValid(parsed);
     } catch {
       return false;
     }
@@ -135,7 +215,8 @@ export class TimeHelper {
   ): boolean {
     const date = parseISO(dateString);
     const maxDate = addDays(new Date(), maxDays);
-    return isBefore(date, maxDate);
+    // reservation date must be <= maxDate (on or before)
+    return isBefore(date, maxDate) || date.getTime() === maxDate.getTime();
   }
 
   static isPeakHour(
@@ -144,9 +225,18 @@ export class TimeHelper {
     peakEnd: string
   ): boolean {
     const time = this.parseTime(timeString);
-    const start = this.parseTime(peakStart);
-    const end = this.parseTime(peakEnd);
+    if (!isValid(time)) return false;
 
-    return isWithinInterval(time, { start, end });
+    const checkMin = time.getHours() * 60 + time.getMinutes();
+    const startMin = this.timeStringToMinutes(peakStart);
+    const endMin = this.timeStringToMinutes(peakEnd);
+
+    if (!Number.isFinite(startMin) || !Number.isFinite(endMin)) return false;
+
+    if (endMin > startMin) {
+      return checkMin >= startMin && checkMin <= endMin;
+    }
+    // overnight peak
+    return checkMin >= startMin || checkMin <= endMin;
   }
 }
